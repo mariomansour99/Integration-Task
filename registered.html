@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>Warning Page</title>
+</head>
+
+<body>
+    <div class="redirectRef">
+
+        <div class="secondpage">
+            <label>Warning</label>
+            <p class="paragraph">Your Number is already Registered!</p>
+            <div class="button-container">
+                <button id="redirectButton">Main Page</button>
+                <button id="Cancel" onclick="cancel()">Cancel Subscription</button>
+            </div>
+
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+        <script>
+            function getUtcTime() {
+                const now = new Date();
+                const utcString = now.toISOString().replace(/\.[\d]{3}Z/, 'Z');
+                return utcString;
+            }
+
+            function HMACSHA256(private_key, message) {
+                const keyUtf8 = CryptoJS.enc.Utf8.parse(private_key);
+                const messageUtf8 = CryptoJS.enc.Utf8.parse(message);
+                const hash = CryptoJS.HmacSHA256(messageUtf8, keyUtf8);
+                return hash.toString(CryptoJS.enc.Hex);
+            }
+            const merchantPublicKey = 'qTmCPw7W5W2S57gL0kwM';
+            const merchantPrivateKey = 'cv6kWabwxYRUSPSia1nj';
+            const date = getUtcTime()
+            const lang = 'en';
+            const message = date + lang;
+            let signature = HMACSHA256(merchantPrivateKey, message)
+            const redirectButton = document.getElementById('redirectButton');
+
+            redirectButton.addEventListener('click', function () {
+                window.location.href = 'welcome.html';
+            });
+
+
+            function cancel() {
+                var contractID = localStorage.getItem("contractID")
+                console.log(contractID);
+                let message = contractID
+                let response = axios.post("http://127.0.0.1/backendCancel.php", {
+                    signature: merchantPublicKey + ":" + HMACSHA256(merchantPrivateKey, message),
+                    subscriptionContractId: contractID,
+                    
+                }).then(response => {
+                    console.log(response)
+                    window.location.href = 'welcome.html';
+                })
+            }
+
+        </script>
+</body>
+
+</html>

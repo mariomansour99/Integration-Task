@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>Warning Page</title>
+</head>
+
+<body>
+    <div class="redirectRef">
+
+        <div class="secondpage">
+            <label>Warning</label>
+            <p class="paragraph">Error with your Subscription !</p>
+            <p id="errorMessage" class="paragraph"></p>
+            <div class="button-container">
+                <button id="redirectButton">Try Again</button>
+            </div>
+
+        </div>
+
+        <script>
+            const redirectButton = document.getElementById('redirectButton');
+            redirectButton.addEventListener('click', function () {
+                window.location.href = 'welcome.html';
+            });
+
+
+
+        </script>
+</body>
+
+</html>

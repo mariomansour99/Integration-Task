@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="main">
+        <div class="firstpage">
+
+            <label for="chk" aria-hidden="true">Enter Phone</label>
+            <input type="text" name="txt" id="phone" placeholder="Phone Number" required>
+            <select class="select-opr" name="opr" id="operatorInput" onChange="handleOperatorChange()">
+                <option value="">Phone Operator</option>
+                <option value="60201">Orange</option>
+                <option value="60202">Vodafone</option>
+            </select>
+            <button id="subscribeButton">Submit</button>
+        </div>
+
+
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+        <script>
+            function getUtcTime() {
+                const now = new Date();
+                const utcString = now.toISOString().replace(/\.[\d]{3}Z/, 'Z');
+                return utcString;
+            }
+
+            function HMACSHA256(private_key, message) {
+                const keyUtf8 = CryptoJS.enc.Utf8.parse(private_key);
+                const messageUtf8 = CryptoJS.enc.Utf8.parse(message);
+                const hash = CryptoJS.HmacSHA256(messageUtf8, keyUtf8);
+                return hash.toString(CryptoJS.enc.Hex);
+            }
+
+
+            const merchantPublicKey = 'qTmCPw7W5W2S57gL0kwM';
+            const merchantPrivateKey = 'cv6kWabwxYRUSPSia1nj';
+            const date = getUtcTime()
+            const lang = 'en';
+            const message = date + lang;
+            let signature = HMACSHA256(merchantPrivateKey, message)
+            let operatorCodeValue;
+
+
+
+            let digest = merchantPublicKey + ":" + signature;
+            let url = "http://lookup.tpay.me/idxml.ashx/v2/js?date=" + date + "&lang=" + lang + "&digest=" + digest
+
+            var scriptElement = document.createElement('script');
+            scriptElement.src = url
+            document.body.appendChild(scriptElement)
+            const subscribeButton = document.getElementById('subscribeButton');
+
+            function handleOperatorChange() {
+                var operatorCodeValue = document.getElementById('operatorInput').value;
+                console.log('Operator code changed:', operatorCodeValue);
+                if (!TPay.HeaderEnrichment.enriched()) {
+                    TPay.HeaderEnrichment.init({ operatorCode: operatorCodeValue });
+                }
+            }
+
+            function sendSMS(contractDetails, operatorCode) {
+                console.log(contractDetails)
+                let message = "Welcome to Tpay Service" + operatorCode + contractDetails.subscriptionContractId
+                let response = axios.post("http://127.0.0.1/backendSend.php", {
+                    signature: merchantPublicKey + ":" + HMACSHA256(merchantPrivateKey, message),
+                    messageBody: "Welcome to Tpay Service",
+                    operatorCode: operatorCode,
+                    subscriptionContractId: contractDetails.subscriptionContractId,
+                }).then(response => {
+                    console.log(response)
+                    window.location.href = 'confirmation.html';
+                });
+            }
+
+            subscribeButton.addEventListener('click', function f2() {
+                console.log('Subscribe Pressed!');
+                operatorCodeValue = document.getElementById('operatorInput').value;
+                localStorage.setItem('operatorcode', operatorCodeValue);
+                msisdnInput = document.getElementById('phone').value;
+                if (!operatorCodeValue || !msisdnInput) {
+                    console.error('Operator code and MSISDN are required');
+                    return;
+                }
+
+                const subscriptionPlanId = '2425';
+                const productCatalog = 'IntegrationTask';
+                const productSku = "1";
+                const msisdn = msisdnInput;
+                const customerAccountNumber = "1234";
+                const merchantTemplateKey = 'integrationTask';
+
+                const subscriptionInfo = {
+                    subscriptionPlanId,
+                    productCatalog,
+                    productSku,
+                    msisdn,
+                    operatorCode: operatorCodeValue,
+                    customerAccountNumber,
+                    merchantTemplateKey
+                };
+
+
+                TPay.HeaderEnrichment.confirm(subscriptionInfo, confirmCallback);
+
+                function confirmCallback(status, refCode, contractDetails) {
+
+                    localStorage.setItem('contractID', contractDetails.subscriptionContractId);
+
+                    if (status && refCode) {
+                        console.log('Confirmation successful');
+                        console.log('Reference code:', refCode);
+                        console.log('Contract details:', contractDetails);
+                        console.log(contractDetails.subscriptionContractId);
+                        sendSMS(contractDetails, localStorage.getItem("operatorcode"));
+
+                    }
+
+
+
+                    else if (status && refCode === null && contractDetails.subscriptionContractId !== '0') {
+                        console.log('Status is true but refCode is not null');
+                        console.log('Confirmation successful');
+                        console.log('Reference code:', refCode);
+                        console.log('Contract details:', contractDetails);
+                        console.log(contractDetails.subscriptionContractId);
+                        window.location.href = 'registered.html';
+                    }
+
+                    else if (status && refCode === null && contractDetails.subscriptionContractId === null) {
+                        console.log('Subscribe Error');
+                        window.location.href = 'errorMessage.html';
+                    }
+
+                    else {
+                        console.error('Confirmation failed');
+                        console.log('Reference code:', refCode);
+                        console.log('Contract details:', contractDetails);
+                        window.location.href = 'errorMessage.html';
+
+                    }
+                }
+            });
+
+        </script>
+</body>
+
+</html>
